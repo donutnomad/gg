@@ -48,3 +48,11 @@ func (i *icall) AddCall(name string, params ...interface{}) *icall {
 	i.calls.append(Call(name).AddParameter(params...))
 	return i
 }
+
+// String returns the string representation of the call.
+func (i *icall) String() string {
+	buf := pool.Get()
+	defer buf.Free()
+	i.render(buf)
+	return buf.String()
+}
