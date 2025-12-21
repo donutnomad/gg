@@ -1,6 +1,6 @@
-[![Build Status](https://github.com/Xuanwo/gg/workflows/Unit%20Test/badge.svg?branch=master)](https://github.com/Xuanwo/gg/actions?query=workflow%3A%22Unit+Test%22)
-[![Go dev](https://pkg.go.dev/badge/github.com/Xuanwo/gg)](https://pkg.go.dev/github.com/Xuanwo/gg)
-[![License](https://img.shields.io/badge/license-apache%20v2-blue.svg)](https://github.com/Xuanwo/gg/blob/master/LICENSE)
+[![Build Status](https://github.com/donutnomad/gg/workflows/Unit%20Test/badge.svg?branch=master)](https://github.com/donutnomad/gg/actions?query=workflow%3A%22Unit+Test%22)
+[![Go dev](https://pkg.go.dev/badge/github.com/donutnomad/gg)](https://pkg.go.dev/github.com/donutnomad/gg)
+[![License](https://img.shields.io/badge/license-apache%20v2-blue.svg)](https://github.com/donutnomad/gg/blob/master/LICENSE)
 [![matrix](https://img.shields.io/matrix/xuanwo@gg:matrix.org.svg?logo=matrix)](https://matrix.to/#/#xuanwo@gg:matrix.org)
 
 # gg
@@ -13,7 +13,7 @@ package main
 import (
 	"fmt"
 
-	. "github.com/Xuanwo/gg"
+	. "github.com/donutnomad/gg"
 )
 
 func main() {

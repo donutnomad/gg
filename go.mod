@@ -1,4 +1,4 @@
-module github.com/Xuanwo/gg
+module github.com/donutnomad/gg
 
 go 1.15
 
