@@ -3,7 +3,7 @@ package gg
 import "io"
 
 type iconst struct {
-	items *group
+	items *Group
 }
 
 func Const() *iconst {

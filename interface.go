@@ -3,10 +3,10 @@ package gg
 import "io"
 
 type isignature struct {
-	comments   *group
+	comments   *Group
 	name       string
-	parameters *group
-	results    *group
+	parameters *Group
+	results    *Group
 }
 
 func signature(name string) *isignature {
@@ -51,7 +51,7 @@ func (i *isignature) AddResult(name, typ interface{}) *isignature {
 
 type iinterface struct {
 	name  string
-	items *group
+	items *Group
 }
 
 func Interface(name string) *iinterface {

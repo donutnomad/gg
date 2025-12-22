@@ -4,7 +4,7 @@ import "io"
 
 type istruct struct {
 	name  string
-	items *group
+	items *Group
 }
 
 // Struct will insert a new struct.

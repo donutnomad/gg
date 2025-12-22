@@ -42,7 +42,8 @@ func (p *PackageRef) Dot(name string) Node {
 // Example: types.NewUser("name")
 func (p *PackageRef) Call(name string, args ...any) *icall {
 	c := Call(name)
-	c.owner = String(p.alias)
+	// Use qualifiedIdent with empty name so it renders as "alias." instead of "alias.name."
+	c.owner = &qualifiedIdent{pkg: p, name: ""}
 	c.AddParameter(args...)
 	return c
 }

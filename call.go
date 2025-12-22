@@ -7,8 +7,8 @@ import (
 type icall struct {
 	owner Node
 	name  string
-	items *group
-	calls *group
+	items *Group
+	calls *Group
 }
 
 // Call is used to generate a function call.

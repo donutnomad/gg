@@ -5,26 +5,29 @@ import "io"
 type ifunction struct {
 	name       string
 	receiver   Node
-	parameters *group
-	results    *group
-	body       *group
+	parameters *Group
+	results    *Group
+	body       *Group
 	call       *icall
 }
 
 // Function represent both method and function in Go.
 //
-// NOTES
+// # NOTES
 //
 // If `WithReceiver`, we will generate a method:
-//    func (t test) Test()
+//
+//	func (t test) Test()
 //
 // If `WithCall`, we will generate a function call:
-//    func Test(){}()
+//
+//	func Test(){}()
 //
 // If `AddBody`, we will generate like a function definition without body:
-//    func Test() {
-//        println("Hello, World!")
-//    }
+//
+//	func Test() {
+//	    println("Hello, World!")
+//	}
 func Function(name string) *ifunction {
 	i := &ifunction{
 		name:       name,
@@ -103,4 +106,27 @@ func (i *ifunction) AddResult(name, typ interface{}) *ifunction {
 func (i *ifunction) AddBody(node ...interface{}) *ifunction {
 	i.body.append(node...)
 	return i
+}
+
+// Body returns the function body group for direct manipulation
+func (i *ifunction) Body(node ...interface{}) *Group {
+	if len(node) > 0 {
+		i.body.append(node...)
+	}
+	return i.body
+}
+
+// Return adds a single return type (shorthand for AddResult("", typ))
+func (i *ifunction) Return(typ interface{}) *ifunction {
+	return i.AddResult("", typ)
+}
+
+// Param adds a parameter (shorthand for AddParameter)
+func (i *ifunction) Param(name, typ interface{}) *ifunction {
+	return i.AddParameter(name, typ)
+}
+
+// Func is an alias for Function for more concise code
+func Func(name string) *ifunction {
+	return Function(name)
 }

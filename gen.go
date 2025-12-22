@@ -10,7 +10,7 @@ import (
 // Generator is the main entry point for code generation.
 // It manages packages, imports, and provides methods for generating Go code.
 type Generator struct {
-	g *group
+	g *Group
 
 	// Package management
 	packageName     string                 // current package name (e.g., "main")
@@ -196,7 +196,7 @@ func isStdLib(importPath string) bool {
 	return true // Short path without slash = likely stdlib
 }
 
-func (g *Generator) NewGroup() (ng *group) {
+func (g *Generator) NewGroup() (ng *Group) {
 	ng = NewGroup()
 	g.g.append(ng)
 	return ng
@@ -263,7 +263,7 @@ func (g *Generator) String() string {
 
 // Body returns the body group for adding code elements.
 // This provides direct access to the internal group for adding functions, structs, etc.
-func (g *Generator) Body() *group {
+func (g *Generator) Body() *Group {
 	return g.g
 }
 
@@ -273,4 +273,150 @@ func (g *Generator) Bytes() []byte {
 	defer buf.Free()
 	g.render(buf)
 	return buf.Bytes()
+}
+
+// Merge merges another Generator's body and imports into this one.
+// This is useful when multiple generators need to output to the same file.
+// The other generator's body is appended to this generator's body.
+// Import paths are merged, with alias conflicts resolved automatically.
+// All PackageRef in the merged generator will be updated to use the correct aliases.
+func (g *Generator) Merge(other *Generator) *Generator {
+	if other == nil {
+		return g
+	}
+
+	// Build alias mapping: old alias -> new alias
+	aliasMapping := make(map[string]string)
+
+	// Merge imports and build mapping
+	for importPath, pkg := range other.packages {
+		oldAlias := pkg.alias
+
+		if _, exists := g.packages[importPath]; !exists {
+			// Package not yet registered, add it
+			newPkg := g.P(importPath)
+			// Record the alias mapping
+			aliasMapping[oldAlias] = newPkg.alias
+		} else {
+			// Package already exists, use existing alias
+			aliasMapping[oldAlias] = g.packages[importPath].alias
+		}
+	}
+
+	// Update all PackageRef in other's body to point to this generator
+	// and use the new aliases
+	updatePackageRefs(other.g, g, aliasMapping)
+
+	// Merge body - append other's body content to this generator
+	g.g.Append(other.g)
+
+	return g
+}
+
+// updatePackageRefs recursively updates all PackageRef in a node tree
+// to use the new generator and alias mapping
+func updatePackageRefs(node Node, newGen *Generator, aliasMapping map[string]string) {
+	if node == nil {
+		return
+	}
+
+	switch n := node.(type) {
+	case *Group:
+		for _, item := range n.items {
+			updatePackageRefs(item, newGen, aliasMapping)
+		}
+	case *qualifiedIdent:
+		// Update the PackageRef's generator and alias
+		if n.pkg != nil {
+			oldAlias := n.pkg.alias
+			if newAlias, ok := aliasMapping[oldAlias]; ok {
+				// Update to use the new generator's PackageRef
+				if newPkg, exists := newGen.packages[n.pkg.importPath]; exists {
+					n.pkg = newPkg
+				} else {
+					// If not found, at least update the alias
+					n.pkg.gen = newGen
+					n.pkg.alias = newAlias
+				}
+			}
+		}
+	case *sliceType:
+		updatePackageRefs(n.elem, newGen, aliasMapping)
+	case *ptrType:
+		updatePackageRefs(n.elem, newGen, aliasMapping)
+	case *mapType:
+		updatePackageRefs(n.key, newGen, aliasMapping)
+		updatePackageRefs(n.value, newGen, aliasMapping)
+	case *chanType:
+		updatePackageRefs(n.elem, newGen, aliasMapping)
+	case *genericType:
+		updatePackageRefs(n.base, newGen, aliasMapping)
+		for _, arg := range n.args {
+			updatePackageRefs(arg, newGen, aliasMapping)
+		}
+	case *ifunction:
+		updatePackageRefs(n.receiver, newGen, aliasMapping)
+		updatePackageRefs(n.parameters, newGen, aliasMapping)
+		updatePackageRefs(n.results, newGen, aliasMapping)
+		updatePackageRefs(n.body, newGen, aliasMapping)
+		if n.call != nil {
+			updatePackageRefs(n.call, newGen, aliasMapping)
+		}
+	case *istruct:
+		updatePackageRefs(n.items, newGen, aliasMapping)
+	case *iinterface:
+		updatePackageRefs(n.items, newGen, aliasMapping)
+	case *isignature:
+		updatePackageRefs(n.parameters, newGen, aliasMapping)
+		updatePackageRefs(n.results, newGen, aliasMapping)
+		updatePackageRefs(n.comments, newGen, aliasMapping)
+	case *ivar:
+		updatePackageRefs(n.items, newGen, aliasMapping)
+	case *iconst:
+		updatePackageRefs(n.items, newGen, aliasMapping)
+	case *iif:
+		updatePackageRefs(n.judge, newGen, aliasMapping)
+		updatePackageRefs(n.body, newGen, aliasMapping)
+	case *ifor:
+		updatePackageRefs(n.judge, newGen, aliasMapping)
+		updatePackageRefs(n.body, newGen, aliasMapping)
+	case *iswitch:
+		updatePackageRefs(n.judge, newGen, aliasMapping)
+		for _, c := range n.cases {
+			updatePackageRefs(c.judge, newGen, aliasMapping)
+			updatePackageRefs(c.body, newGen, aliasMapping)
+		}
+		if n.defaultCase != nil {
+			updatePackageRefs(n.defaultCase.judge, newGen, aliasMapping)
+			updatePackageRefs(n.defaultCase.body, newGen, aliasMapping)
+		}
+	case *ireturn:
+		updatePackageRefs(n.items, newGen, aliasMapping)
+	case *icall:
+		updatePackageRefs(n.owner, newGen, aliasMapping)
+		updatePackageRefs(n.items, newGen, aliasMapping)
+		updatePackageRefs(n.calls, newGen, aliasMapping)
+	case *ivalue:
+		updatePackageRefs(n.items, newGen, aliasMapping)
+	case *islice:
+		updatePackageRefs(n.elemType, newGen, aliasMapping)
+		updatePackageRefs(n.items, newGen, aliasMapping)
+	case *iarray:
+		updatePackageRefs(n.elemType, newGen, aliasMapping)
+		updatePackageRefs(n.items, newGen, aliasMapping)
+	case *itype:
+		updatePackageRefs(n.item, newGen, aliasMapping)
+	case *idefer:
+		updatePackageRefs(n.body, newGen, aliasMapping)
+	case *ifield:
+		updatePackageRefs(n.name, newGen, aliasMapping)
+		updatePackageRefs(n.typ, newGen, aliasMapping)
+		updatePackageRefs(n.value, newGen, aliasMapping)
+		// For other types like *istring, *lit, etc., no action needed
+	}
+}
+
+// PackageName returns the current package name.
+func (g *Generator) PackageName() string {
+	return g.packageName
 }

@@ -4,7 +4,7 @@ import "io"
 
 type iif struct {
 	judge Node
-	body  *group
+	body  *Group
 }
 
 func If(judge interface{}) *iif {
@@ -26,7 +26,7 @@ func (i *iif) AddBody(node ...interface{}) *iif {
 
 type ifor struct {
 	judge Node
-	body  *group
+	body  *Group
 }
 
 func (i *ifor) render(w io.Writer) {
@@ -49,7 +49,7 @@ func (i *ifor) AddBody(node ...interface{}) *ifor {
 
 type icase struct {
 	judge Node // judge == nil means it's a default case.
-	body  *group
+	body  *Group
 }
 
 func (i *icase) render(w io.Writer) {

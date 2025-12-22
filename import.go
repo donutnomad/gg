@@ -3,7 +3,7 @@ package gg
 import "io"
 
 type iimport struct {
-	items *group
+	items *Group
 }
 
 // Import will start a new import group.

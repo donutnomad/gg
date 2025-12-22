@@ -3,7 +3,7 @@ package gg
 import "io"
 
 type ireturn struct {
-	items *group
+	items *Group
 }
 
 func Return(node ...interface{}) *ireturn {

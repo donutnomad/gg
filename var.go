@@ -3,7 +3,7 @@ package gg
 import "io"
 
 type ivar struct {
-	items *group
+	items *Group
 }
 
 func Var() *ivar {
