@@ -293,10 +293,17 @@ func (g *Generator) Merge(other *Generator) *Generator {
 		oldAlias := pkg.alias
 
 		if _, exists := g.packages[importPath]; !exists {
-			// Package not yet registered, add it
-			newPkg := g.P(importPath)
-			// Record the alias mapping
-			aliasMapping[oldAlias] = newPkg.alias
+			// Package not yet registered
+			// Check if the alias is already used by another package
+			if existingPath, aliasUsed := g.aliasToPath[oldAlias]; aliasUsed && existingPath != importPath {
+				// Alias conflict, let P() auto-resolve
+				newPkg := g.P(importPath)
+				aliasMapping[oldAlias] = newPkg.alias
+			} else {
+				// No conflict, preserve the original alias
+				newPkg := g.PAlias(importPath, oldAlias)
+				aliasMapping[oldAlias] = newPkg.alias
+			}
 		} else {
 			// Package already exists, use existing alias
 			aliasMapping[oldAlias] = g.packages[importPath].alias
