@@ -16,6 +16,9 @@ func signature(name string) *isignature {
 		parameters: newGroup("(", ")", ","),
 		results:    newGroup("(", ")", ","),
 	}
+	// Enable field merging for parameters and results
+	i.parameters.mergeFields = true
+	i.results.mergeFields = true
 	// We should omit the `()` if result is empty
 	// Read about omit in NewFunction comments.
 	i.results.omitWrapIf = func() bool {

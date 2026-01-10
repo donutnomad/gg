@@ -40,6 +40,10 @@ type Group struct {
 
 	// NewIf this result is true, we will omit the wrap like `()`, `{}`.
 	omitWrapIf func() bool
+
+	// mergeFields when true, consecutive fields with the same type will be merged.
+	// Example: (a string, b string, c int) => (a, b string, c int)
+	mergeFields bool
 }
 
 func (g *Group) length() int {
@@ -71,17 +75,115 @@ func (g *Group) render(w io.Writer) {
 		writeString(w, g.open)
 	}
 
-	isfirst := true
-	for _, node := range g.items {
-		if !isfirst {
-			writeString(w, g.separator)
+	if g.mergeFields {
+		g.renderMergedFields(w)
+	} else {
+		isfirst := true
+		for _, node := range g.items {
+			if !isfirst {
+				writeString(w, g.separator)
+			}
+			node.render(w)
+			isfirst = false
 		}
-		node.render(w)
-		isfirst = false
 	}
 
 	if g.close != "" && !g.shouldOmitWrap() {
 		writeString(w, g.close)
+	}
+}
+
+// renderMergedFields renders fields with consecutive same types merged.
+// Example: (a string, b string, c int) => (a, b string, c int)
+func (g *Group) renderMergedFields(w io.Writer) {
+	type fieldInfo struct {
+		name string
+		typ  string
+	}
+
+	// Extract field information
+	var fields []fieldInfo
+	for _, node := range g.items {
+		if f, ok := node.(*ifield); ok {
+			// Get name and type as strings
+			nameBuf := pool.Get()
+			f.name.render(nameBuf)
+			name := nameBuf.String()
+			nameBuf.Free()
+
+			typBuf := pool.Get()
+			f.value.render(typBuf)
+			typ := typBuf.String()
+			typBuf.Free()
+
+			fields = append(fields, fieldInfo{name: name, typ: typ})
+		} else if mf, ok := node.(*multiNameField); ok {
+			// multiNameField already handles multiple names with same type
+			typBuf := pool.Get()
+			mf.typ.render(typBuf)
+			typ := typBuf.String()
+			typBuf.Free()
+
+			for _, name := range mf.names {
+				fields = append(fields, fieldInfo{name: name, typ: typ})
+			}
+		} else {
+			// Unknown node type, render as-is
+			node.render(w)
+			continue
+		}
+	}
+
+	// Check if all field names are empty (unnamed parameters/results)
+	allNamesEmpty := true
+	for _, f := range fields {
+		if f.name != "" {
+			allNamesEmpty = false
+			break
+		}
+	}
+
+	// If all names are empty, don't merge - just output types
+	if allNamesEmpty {
+		isfirst := true
+		for _, f := range fields {
+			if !isfirst {
+				writeString(w, g.separator)
+			}
+			writeString(w, f.typ)
+			isfirst = false
+		}
+		return
+	}
+
+	// Group consecutive fields with the same type
+	isfirst := true
+	i := 0
+	for i < len(fields) {
+		if !isfirst {
+			writeString(w, g.separator)
+		}
+
+		// Find all consecutive fields with the same type
+		j := i + 1
+		for j < len(fields) && fields[j].typ == fields[i].typ {
+			j++
+		}
+
+		// Write names
+		for k := i; k < j; k++ {
+			if k > i {
+				writeString(w, ", ")
+			}
+			writeString(w, fields[k].name)
+		}
+
+		// Write type
+		writeString(w, " ")
+		writeString(w, fields[i].typ)
+
+		isfirst = false
+		i = j
 	}
 }
 

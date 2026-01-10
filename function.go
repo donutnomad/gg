@@ -35,6 +35,9 @@ func Function(name string) *ifunction {
 		results:    newGroup("(", ")", ","),
 		body:       newGroup("{\n", "}", "\n"),
 	}
+	// Enable field merging for parameters and results
+	i.parameters.mergeFields = true
+	i.results.mergeFields = true
 	// We should omit the `()` if result is empty
 	i.results.omitWrapIf = func() bool {
 		l := i.results.length()
