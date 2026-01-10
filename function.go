@@ -98,6 +98,16 @@ func (i *ifunction) AddParameter(name, typ interface{}) *ifunction {
 	return i
 }
 
+// AddParameters adds multiple parameters with the same type.
+// Example: AddParameters([]string{"ctx", "bid", "key"}, "any") => ctx, bid, key any
+func (i *ifunction) AddParameters(names []string, typ interface{}) *ifunction {
+	if len(names) == 0 {
+		return i
+	}
+	i.parameters.append(&multiNameField{names: names, typ: parseNode(typ)})
+	return i
+}
+
 func (i *ifunction) AddResult(name, typ interface{}) *ifunction {
 	i.results.append(field(name, typ, " "))
 	return i

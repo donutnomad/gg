@@ -46,3 +46,21 @@ func (f *ifield) render(w io.Writer) {
 	writeString(w, f.separator)
 	f.value.render(w)
 }
+
+// multiNameField represents multiple names sharing the same type.
+// Example: ctx, bid, key any
+type multiNameField struct {
+	names []string
+	typ   Node
+}
+
+func (f *multiNameField) render(w io.Writer) {
+	for i, name := range f.names {
+		if i > 0 {
+			writeString(w, ", ")
+		}
+		writeString(w, name)
+	}
+	writeString(w, " ")
+	f.typ.render(w)
+}
